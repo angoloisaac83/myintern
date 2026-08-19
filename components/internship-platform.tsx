@@ -1094,11 +1094,11 @@ export default function InternshipPlatform() {
 
       {selectedInternship && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-5"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-4 sm:items-center sm:p-5"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-7 shadow-xl">
+          <div className="my-4 max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-xl sm:my-5 sm:max-h-[calc(100dvh-2.5rem)] sm:p-7">
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold text-primary">
