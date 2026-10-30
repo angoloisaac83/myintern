@@ -224,17 +224,34 @@ export default function SettingsPage() {
     }
   }
 
-  if (!currentUser) return (<main className="min-h-screen p-10"><div className="max-w-2xl mx-auto text-center"><h2 className="text-2xl font-bold">Settings</h2><p className="mt-4">Sign in to edit your profile.</p><Link href="/">Back</Link></div></main>)
+  if (!currentUser) return (
+    <main className="min-h-screen bg-[#f7f8fa] px-5 py-10 text-[#111827] dark:bg-background dark:text-foreground sm:px-8">
+      <div className="mx-auto max-w-md rounded-[2rem] border border-border bg-card p-8 text-center shadow-sm">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">P</div>
+        <h2 className="mt-6 text-3xl font-bold tracking-tight">Your profile, your path</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">Sign in to manage the details that power your internship matches.</p>
+        <Link href="/" className="mt-7 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Back to placements</Link>
+      </div>
+    </main>
+  )
+
+  const profileFields = [displayName, course, preferredField, preferredLocation, skills, bio, cvData]
+  const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100)
 
   return (
-    <main className="min-h-screen p-10">
-      <div className="max-w-4xl mx-auto grid gap-8 lg:grid-cols-[320px_1fr]">
-        <aside className="rounded-3xl border border-border bg-card p-6">
+    <main className="min-h-screen bg-[#f7f8fa] px-4 py-5 text-[#111827] dark:bg-background dark:text-foreground sm:px-8 sm:py-8">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><Link href="/" className="text-sm font-semibold text-primary">← Pathway</Link><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Profile settings</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Keep your profile current so the allocation engine can make fair, explainable recommendations.</p></div>
+          <div className="rounded-2xl border border-border bg-card px-4 py-3 text-left shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Profile strength</p><p className="mt-1 text-2xl font-bold text-primary">{accountType === 'company' ? (verificationStatus === 'Verified' ? 'Verified' : 'In review') : `${profileCompletion}%`}</p></div>
+        </header>
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="h-fit rounded-[1.75rem] border border-border bg-card p-5 shadow-sm lg:sticky lg:top-6">
           <div className="flex items-center gap-4">
             {accountType === 'company' && companyLogoData ? <img src={companyLogoData} alt="Company logo" className="h-16 w-16 rounded-full object-cover" /> : photoData ? <img src={photoData} alt="Profile" className="h-16 w-16 rounded-full object-cover" /> : <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">{(displayName || (currentUser && currentUser.email) || 'U').slice(0, 1).toUpperCase()}</div>}
             <div>
               <p className="text-sm font-semibold">{displayName || (currentUser && currentUser.email)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Student profile</p>
+              <p className="mt-1 text-xs text-muted-foreground">{accountType === 'company' ? 'Employer profile' : 'Student profile'}</p>
             </div>
           </div>
           <div className="mt-6">
@@ -249,9 +266,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </aside>
-        <section>
-          <h2 className="text-2xl font-bold">Settings</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Edit your profile to help the platform match you correctly.</p>
+        <section className="rounded-[1.75rem] border border-border bg-card p-5 shadow-sm sm:p-8">
+          <div className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Account details</p><h2 className="mt-2 text-2xl font-bold">Edit your {accountType === 'company' ? 'company' : 'student'} profile</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Edit your profile to help the platform match you correctly.</p></div>
           {accountType === 'company' ? (
             <form onSubmit={save} className="mt-6 space-y-4">
               <label className="block text-sm font-medium">Company name<input required value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
@@ -316,6 +333,7 @@ export default function SettingsPage() {
             </form>
           )}
         </section>
+        </div>
       </div>
     </main>
   )
