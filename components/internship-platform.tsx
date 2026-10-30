@@ -39,6 +39,8 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  SlidersHorizontal,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -101,6 +103,21 @@ function getPostedAgo(createdAt?: unknown) {
   const days = Math.floor(diff / 86_400_000);
   if (days === 0) return "Today";
   return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function getMatchScore(item: InternshipItem, profile: any | null) {
+  if (!profile) return 0;
+  const profileText = [
+    profile.course,
+    profile.preferredField,
+    profile.preferredLocation,
+    profile.location,
+    ...(Array.isArray(profile.skills) ? profile.skills : [profile.skills]),
+  ].filter(Boolean).join(" ").toLowerCase();
+  const roleText = [item.role, item.company, item.location, item.requirements, ...(item.tags ?? [])].filter(Boolean).join(" ").toLowerCase();
+  const terms = profileText.split(/[\\s,;/]+/).filter((term: string) => term.length > 2);
+  const matches = [...new Set(terms)].filter((term: string) => roleText.includes(term)).length;
+  return Math.min(98, Math.max(42, 58 + matches * 8));
 }
 
 function normalizeDropboxUrl(value: unknown) {
@@ -382,6 +399,11 @@ export default function InternshipPlatform() {
       mounted = false;
     };
   }, []);
+
+  const profileCompletion = useMemo(() => {
+    const fields = [studentProfile?.course, studentProfile?.skills, studentProfile?.preferredLocation, studentProfile?.cv];
+    return Math.round((fields.filter(Boolean).length / fields.length) * 100);
+  }, [studentProfile]);
 
   const filtered = useMemo(
     () =>
@@ -892,9 +914,8 @@ export default function InternshipPlatform() {
               Find an IT placement that fits{" "}
               <span className="text-primary">your future.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              Discover verified opportunities matched to your course, skills,
-              and goals. No connections needed — just a clearer path forward.
+              <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+              One trusted workspace for students, coordinators, and employers. Find relevant roles, track every application, and move from search to placement with less manual work.
             </p>
           </div>
           <div className="mt-8 flex max-w-4xl flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm md:flex-row">
@@ -960,25 +981,43 @@ export default function InternshipPlatform() {
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-medium text-primary">
-                Good morning, Amara
+                {currentUser ? `Welcome back, ${currentUser.displayName || "student"}` : "A clearer path to placement"}
               </p>
               <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight">
-                Recommended for you
+                Recommended placements
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Based on your Information Technology profile
+                Ranked by your course, skills, interests, and location preferences.
               </p>
             </div>
-            <button className="flex items-center gap-2 self-start rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-secondary">
-              <Filter className="size-4" /> Filters
+            <button onClick={() => setShowFilters((visible) => !visible)} className={`flex items-center gap-2 self-start rounded-xl border px-4 py-2.5 text-sm font-medium hover:bg-secondary ${showFilters ? "border-primary bg-primary/10 text-primary" : "border-border bg-card"}`}>
+              <SlidersHorizontal className="size-4" /> {showFilters ? "Hide filters" : "Refine results"}
             </button>
           </div>
+          {showFilters && (
+            <div className="mb-5 grid gap-4 rounded-2xl border border-primary/15 bg-primary/[0.04] p-4 sm:grid-cols-2">
+              <label className="text-sm font-medium">Location
+                <input value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} placeholder="Any city or remote" className="mt-2 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary" />
+              </label>
+              <label className="text-sm font-medium">Work arrangement
+                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="mt-2 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary">
+                  <option>All types</option><option>Remote</option><option>Hybrid</option><option>On-site</option>
+                </select>
+              </label>
+            </div>
+          )}
+          {!currentUser && (
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3"><UserRound className="mt-0.5 size-5 shrink-0 text-primary" /><div><p className="text-sm font-semibold">Create a profile for better matches</p><p className="mt-1 text-sm text-muted-foreground">Add your skills, field, and preferred location so every recommendation is relevant.</p></div></div>
+              <button onClick={() => setShowAuth(true)} className="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Get started</button>
+            </div>
+          )}
           <div className="mb-6 grid gap-3 sm:grid-cols-3">
             <Stat
               icon={Sparkles}
               label="Profile match"
-              value="92%"
-              detail="Great starting point"
+              value={currentUser ? `${profileCompletion}%` : "—"}
+              detail={currentUser ? (profileCompletion >= 75 ? "Strong profile" : "Complete your profile") : "Sign in to calculate"}
             />
             <Stat
               icon={BriefcaseBusiness}
@@ -989,8 +1028,8 @@ export default function InternshipPlatform() {
             <Stat
               icon={CheckCircle2}
               label="Applications"
-              value={`${applied.length || 3}`}
-              detail="2 awaiting response"
+              value={`${applications.length}`}
+              detail={`${applications.filter((application) => application.status === "submitted").length} awaiting response`}
             />
           </div>
           <div className="space-y-4">
@@ -1030,6 +1069,11 @@ export default function InternshipPlatform() {
                           <span className="rounded-full bg-emerald/10 px-3 py-1.5 text-xs font-bold text-emerald">
                             Open role
                           </span>
+                          {currentUser && (
+                            <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">
+                              {getMatchScore(item, studentProfile)}% match
+                            </span>
+                          )}
                           <button
                             onClick={() => toggleSaved(item.id)}
                             aria-label={`Save ${item.role}`}
