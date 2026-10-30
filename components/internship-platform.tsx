@@ -116,8 +116,13 @@ function getMatchScore(item: InternshipItem, profile: any | null) {
   ].filter(Boolean).join(" ").toLowerCase();
   const roleText = [item.role, item.company, item.location, item.requirements, ...(item.tags ?? [])].filter(Boolean).join(" ").toLowerCase();
   const terms = profileText.split(/[\\s,;/]+/).filter((term: string) => term.length > 2);
-  const matches = [...new Set(terms)].filter((term: string) => roleText.includes(term)).length;
-  return Math.min(98, Math.max(42, 58 + matches * 8));
+  const uniqueTerms = [...new Set(terms)];
+  const matches = uniqueTerms.filter((term: string) => roleText.includes(term)).length;
+  const skillCount = Array.isArray(profile.skills) ? profile.skills.length : String(profile.skills ?? '').split(',').filter(Boolean).length;
+  const completeness = [profile.course, profile.preferredField, profile.preferredLocation, profile.location, profile.cgpa, profile.bio, skillCount > 0].filter(Boolean).length;
+  const evidenceScore = uniqueTerms.length ? Math.round((matches / uniqueTerms.length) * 58) : 0;
+  const profileScore = Math.round((completeness / 7) * 32);
+  return Math.min(98, Math.max(0, evidenceScore + profileScore));
 }
 
 function normalizeDropboxUrl(value: unknown) {
@@ -904,44 +909,22 @@ export default function InternshipPlatform() {
         </div>
       )}
 
-      <section className="border-b border-border bg-secondary/40">
-        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
-          <div className="max-w-2xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary">
-              <Sparkles className="size-3.5" /> Your next chapter starts here
-            </div>
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-balance md:text-5xl">
-              Find an IT placement that fits{" "}
-              <span className="text-primary">your future.</span>
-            </h1>
-              <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              One trusted workspace for students, coordinators, and employers. Find relevant roles, track every application, and move from search to placement with less manual work.
-            </p>
+      <section className="overflow-hidden border-b border-border bg-[#101b2d] text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:py-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-16">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80"><Sparkles className="size-3.5 text-emerald-300" /> Allocation-ready opportunities</div>
+            <h1 className="max-w-3xl font-serif text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">Your next placement should feel like a <span className="text-emerald-300">match.</span></h1>
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/70">Pathway brings students, verified employers, and coordinators into one transparent workflow—from profile to a fair, trackable placement.</p>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-white/70"><span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-300" /> Weighted matching</span><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-300" /> Verified employers</span><span className="flex items-center gap-2"><GraduationCap className="size-4 text-emerald-300" /> Coordinator oversight</span></div>
           </div>
-          <div className="mt-8 flex max-w-4xl flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm md:flex-row">
-            <div className="flex flex-1 items-center gap-3 rounded-xl bg-background px-4">
-              <Search className="size-5 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search roles, skills, or companies"
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.08] p-4 shadow-2xl sm:p-5">
+            <p className="px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Start your search</p>
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-white px-4 text-slate-900"><Search className="size-5 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Role, skill, or company" className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" /></div>
+              <button onClick={detectLocation} disabled={isLocating} className="flex h-12 items-center justify-between rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/80 disabled:opacity-60"><span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-300" /> {isLocating ? "Locating..." : detectedLocation || "Use my location"}</span><ChevronDown className="size-4" /></button>
+              <button className="h-12 rounded-2xl bg-emerald-300 px-5 text-sm font-bold text-slate-950 hover:bg-emerald-200">Explore placements</button>
             </div>
-            <button
-              onClick={detectLocation}
-              disabled={isLocating}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl border border-border px-5 text-sm font-medium hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
-            >
-              <MapPin className="size-4 text-primary" />{" "}
-              {isLocating
-                ? "Locating..."
-                : detectedLocation || "Use my location"}{" "}
-              <ChevronDown className="size-4" />
-            </button>
-            <button className="h-12 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-              Search placements
-            </button>
+            <p className="mt-4 px-2 text-xs leading-5 text-white/45">Search results are ranked against your live profile, preferences, and role requirements.</p>
           </div>
         </div>
       </section>
