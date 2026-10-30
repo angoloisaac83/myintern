@@ -15,6 +15,7 @@ type InternshipItem = {
   type: string
   requirements?: string
   tags?: string[]
+  status?: string
   createdAt?: unknown
   createdBy?: string
 }
@@ -419,8 +420,7 @@ export default function CompanyPage() {
                   <ul className="mt-6 space-y-4">
                     {jobs.map((job) => (
                       <li key={job.id} className="rounded-3xl border border-border bg-background p-4">
-                        <p className="text-sm font-semibold text-foreground">{job.role}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{job.location} • {job.type}</p>
+                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{job.role}</p><p className="mt-1 text-sm text-muted-foreground">{job.location} • {job.type}</p></div>{job.status !== 'closed' && <button type="button" onClick={async () => { await updateDoc(doc(getFirebaseDb(), 'internships', job.id), { status: 'closed', closedAt: serverTimestamp() }); setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'closed' } : item)) }} className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-600">Close</button>}</div>
                       </li>
                     ))}
                   </ul>
