@@ -225,7 +225,7 @@ export default function SettingsPage() {
   }
 
   if (!currentUser) return (
-    <main className="min-h-screen bg-[#f7f8fa] px-5 py-10 text-[#111827] dark:bg-background dark:text-foreground sm:px-8">
+    <main className="min-h-screen bg-background px-5 py-10 text-foreground sm:px-8">
       <div className="mx-auto max-w-md rounded-[2rem] border border-border bg-card p-8 text-center shadow-sm">
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">P</div>
         <h2 className="mt-6 text-3xl font-bold tracking-tight">Your profile, your path</h2>
@@ -239,7 +239,7 @@ export default function SettingsPage() {
   const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100)
 
   return (
-    <main className="min-h-screen bg-[#f7f8fa] px-4 py-5 text-[#111827] dark:bg-background dark:text-foreground sm:px-8 sm:py-8">
+    <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-8 sm:py-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div><Link href="/" className="text-sm font-semibold text-primary">← Pathway</Link><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Profile settings</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Keep your profile current so the allocation engine can make fair, explainable recommendations.</p></div>

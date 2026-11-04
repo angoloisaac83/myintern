@@ -912,16 +912,16 @@ export default function InternshipPlatform() {
       <section className="overflow-hidden border-b border-border bg-[#101b2d] text-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:py-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-16">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80"><Sparkles className="size-3.5 text-emerald-300" /> Allocation-ready opportunities</div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-card/10 px-3 py-1.5 text-xs font-semibold text-white/80"><Sparkles className="size-3.5 text-emerald-300" /> Allocation-ready opportunities</div>
             <h1 className="max-w-3xl font-serif text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">Your next placement should feel like a <span className="text-emerald-300">match.</span></h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/70">Pathway brings students, verified employers, and coordinators into one transparent workflow—from profile to a fair, trackable placement.</p>
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-white/70"><span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-300" /> Weighted matching</span><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-300" /> Verified employers</span><span className="flex items-center gap-2"><GraduationCap className="size-4 text-emerald-300" /> Coordinator oversight</span></div>
           </div>
-          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.08] p-4 shadow-2xl sm:p-5">
+          <div className="rounded-[1.75rem] border border-white/10 bg-card/[0.08] p-4 shadow-2xl sm:p-5">
             <p className="px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Start your search</p>
             <div className="mt-3 flex flex-col gap-3">
-              <div className="flex items-center gap-3 rounded-2xl bg-white px-4 text-slate-900"><Search className="size-5 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Role, skill, or company" className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" /></div>
-              <button onClick={detectLocation} disabled={isLocating} className="flex h-12 items-center justify-between rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-medium text-white/80 disabled:opacity-60"><span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-300" /> {isLocating ? "Locating..." : detectedLocation || "Use my location"}</span><ChevronDown className="size-4" /></button>
+              <div className="flex items-center gap-3 rounded-2xl bg-card px-4 text-foreground"><Search className="size-5 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Role, skill, or company" className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" /></div>
+              <button onClick={detectLocation} disabled={isLocating} className="flex h-12 items-center justify-between rounded-2xl border border-white/15 bg-card/5 px-4 text-sm font-medium text-white/80 disabled:opacity-60"><span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-300" /> {isLocating ? "Locating..." : detectedLocation || "Use my location"}</span><ChevronDown className="size-4" /></button>
               <button className="h-12 rounded-2xl bg-emerald-300 px-5 text-sm font-bold text-slate-950 hover:bg-emerald-200">Explore placements</button>
             </div>
             <p className="mt-4 px-2 text-xs leading-5 text-white/45">Search results are ranked against your live profile, preferences, and role requirements.</p>
