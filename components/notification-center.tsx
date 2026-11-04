@@ -74,7 +74,7 @@ export function NotificationCenter({ notifications }: { notifications: Notificat
       </button>
 
       {open && (
-        <section role="dialog" aria-label="Notifications" className="absolute right-0 top-[calc(100%_+_0.75rem)] z-[80] w-[min(22rem,calc(100vw_-_2rem))] overflow-hidden rounded-[1.4rem] border border-border bg-popover text-popover-foreground shadow-[0_24px_70px_rgba(9,24,18,0.24)]">
+        <section role="dialog" aria-label="Notifications" className="fixed left-1/2 top-20 z-[80] w-[min(22rem,calc(100vw_-_2rem))] -translate-x-1/2 overflow-hidden rounded-[1.4rem] border border-border bg-popover text-popover-foreground shadow-[0_24px_70px_rgba(9,24,18,0.24)] md:absolute md:left-auto md:right-0 md:top-[calc(100%_+_0.75rem)] md:translate-x-0">
           <div className="bg-[#10251f] px-5 pb-5 pt-4 text-white">
             <div className="flex items-start justify-between gap-4">
               <div>

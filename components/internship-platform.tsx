@@ -39,6 +39,7 @@ import {
   GraduationCap,
   Heart,
   MapPin,
+  LogOut,
   Menu,
   Search,
   ShieldCheck,
@@ -61,6 +62,7 @@ type InternshipItem = {
   tags?: string[];
   createdAt?: unknown;
   createdBy?: string;
+  companyLogo?: string;
 };
 
 type ApplicationItem = {
@@ -405,12 +407,17 @@ export default function InternshipPlatform() {
           internshipsRef,
           orderBy("createdAt", "desc"),
         );
-        const snapshot = await getDocs(queryRef);
+        const [snapshot, companySnapshot] = await Promise.all([
+          getDocs(queryRef),
+          getDocs(collection(db, "companies")).catch(() => null),
+        ]);
         if (!mounted) return;
+        const companyLogos = new Map((companySnapshot?.docs ?? []).map((company) => [company.id, normalizeDropboxUrl((company.data() as any).logo)]));
         setInternships(
           snapshot.docs.map((doc) => ({
             id: doc.id,
             ...(doc.data() as Omit<InternshipItem, "id">),
+            companyLogo: companyLogos.get(String((doc.data() as any).createdBy ?? "")) || undefined,
           })),
         );
       } catch (error) {
@@ -761,7 +768,7 @@ export default function InternshipPlatform() {
             </span>
           </button>
           <div className="hidden items-center gap-8 md:flex">
-            {navItems.map(({ label, icon: Icon }) => (
+            {(currentUser && !isCompanyAccount && !isAdminAccount ? navItems : !currentUser ? navItems.slice(0, 1) : []).map(({ label, icon: Icon }) => (
               <button
                 key={label}
                 onClick={() => {
@@ -856,12 +863,13 @@ export default function InternshipPlatform() {
         {mobileMenuOpen && <nav id="home-mobile-menu" className="absolute left-0 right-0 top-full z-50 max-h-[calc(100svh_-_4rem)] overflow-y-auto border-b border-border bg-card p-3 shadow-xl md:hidden" aria-label="Mobile navigation">
           <div className="mx-auto max-w-7xl space-y-1">
             <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Your workspace</p>
-            {navItems.map(({ label, icon: Icon }) => <button key={label} type="button" onClick={() => { setActiveNav(label); setShowApplicationsPanel(label === "My applications"); setShowSavedPanel(label === "Saved"); if (label === "My applications") loadApplications(); setMobileMenuOpen(false) }} className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-semibold ${activeNav === label ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"}`}><span className="flex items-center gap-3"><Icon className="size-4" />{label}</span><ChevronRight className="size-4 text-muted-foreground" /></button>)}
+            {(currentUser && !isCompanyAccount && !isAdminAccount ? navItems : !currentUser ? navItems.slice(0, 1) : []).map(({ label, icon: Icon }) => <button key={label} type="button" onClick={() => { setActiveNav(label); setShowApplicationsPanel(label === "My applications"); setShowSavedPanel(label === "Saved"); if (label === "My applications") loadApplications(); setMobileMenuOpen(false) }} className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-semibold ${activeNav === label ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"}`}><span className="flex items-center gap-3"><Icon className="size-4" />{label}</span><ChevronRight className="size-4 text-muted-foreground" /></button>)}
             <div className="my-2 border-t border-border" />
             <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pathway pages</p>
-            <Link href="/company" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Employer portal<ChevronRight className="size-4 text-muted-foreground" /></Link>
-            <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Profile settings<ChevronRight className="size-4 text-muted-foreground" /></Link>
+            {(isCompanyAccount === true || !currentUser) && <Link href="/company" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Employer portal<ChevronRight className="size-4 text-muted-foreground" /></Link>}
+            {currentUser && !isAdminAccount && <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Profile settings<ChevronRight className="size-4 text-muted-foreground" /></Link>}
             {isAdminAccount && <><div className="my-2 border-t border-border" /><p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Coordinator tools</p><Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-primary hover:bg-primary/10">Coordinator dashboard<ChevronRight className="size-4" /></Link><Link href="/admin/analytics" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Analytics<ChevronRight className="size-4 text-muted-foreground" /></Link><Link href="/admin/organizations" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Organizations<ChevronRight className="size-4 text-muted-foreground" /></Link><Link href="/admin/reports" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Reports<ChevronRight className="size-4 text-muted-foreground" /></Link></>}
+            {currentUser && <button type="button" onClick={async () => { await signOut(getFirebaseAuth()); setMobileMenuOpen(false); setAuthSuccess("You have been signed out successfully."); }} className="mt-2 flex w-full items-center gap-3 rounded-xl border-t border-border px-3 py-4 text-left text-sm font-semibold text-rose-600"><LogOut className="size-4" /> Sign out</button>}
           </div>
         </nav>}
       </header>
@@ -1048,10 +1056,9 @@ export default function InternshipPlatform() {
                   className="group rounded-3xl border border-border/80 bg-card p-5 shadow-[0_4px_20px_rgba(26,50,38,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_36px_rgba(26,50,38,0.09)] sm:p-6"
                 >
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                    <div
-                      className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${getCompanyBadge(item.company).color} text-sm font-bold text-primary-foreground`}
-                    >
-                      {getCompanyBadge(item.company).initials}
+                    <div className="flex shrink-0 flex-col items-center gap-2 sm:w-20">
+                      {item.companyLogo ? <img src={item.companyLogo} alt={`${item.company} logo`} className="size-16 rounded-2xl border border-border bg-background object-cover shadow-sm" /> : <div className={`flex size-16 items-center justify-center rounded-2xl ${getCompanyBadge(item.company).color} text-sm font-bold text-primary-foreground`}>{getCompanyBadge(item.company).initials}</div>}
+                      <span className="max-w-20 truncate text-center text-[10px] font-medium text-muted-foreground">{item.company}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-col justify-between gap-2 sm:flex-row">
@@ -1146,7 +1153,9 @@ export default function InternshipPlatform() {
         >
           <div className="my-4 max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-xl sm:my-5 sm:max-h-[calc(100dvh-2.5rem)] sm:p-7">
             <div className="mb-6 flex items-start justify-between">
-              <div>
+              <div className="flex items-center gap-3">
+                {companyProfile?.logo || selectedInternship.companyLogo ? <img src={normalizeDropboxUrl(companyProfile?.logo || selectedInternship.companyLogo) || undefined} alt={`${selectedInternship.company} logo`} className="size-12 shrink-0 rounded-xl border border-border object-cover" /> : <span className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${getCompanyBadge(selectedInternship.company).color} text-sm font-bold text-primary-foreground`}>{getCompanyBadge(selectedInternship.company).initials}</span>}
+                <div>
                 <p className="text-sm font-semibold text-primary">
                   Internship details
                 </p>
@@ -1156,6 +1165,7 @@ export default function InternshipPlatform() {
                 <p className="mt-2 text-sm text-muted-foreground">
                   {selectedInternship.company} • {selectedInternship.location}
                 </p>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedInternship(null)}
@@ -1222,6 +1232,18 @@ export default function InternshipPlatform() {
                     <p>
                       <span className="text-muted-foreground">Employees:</span>{" "}
                       {companyProfile.numberEmployees || "Not provided"}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Phone:</span>{" "}
+                      {companyProfile.phone || "Not provided"}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Contact:</span>{" "}
+                      {[companyProfile.contactPerson, companyProfile.contactPosition].filter(Boolean).join(" · ") || "Not provided"}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Registration number:</span>{" "}
+                      {companyProfile.registrationNumber || "Not provided"}
                     </p>
                     <p className="sm:col-span-2">
                       <span className="text-muted-foreground">Website:</span>{" "}

@@ -475,7 +475,23 @@ export default function CompanyPage() {
                           <p className="text-sm font-semibold text-foreground">{app.role}</p>
                           <p className="mt-1 text-sm text-muted-foreground">{app.studentProfile?.displayName || app.studentEmail || app.studentId}</p>
                         </div>
-                        {app.studentProfile && <div className="mt-4 grid gap-2 rounded-2xl border border-border bg-card p-4 text-sm sm:grid-cols-2"><p><span className="text-muted-foreground">Student ID:</span> {app.studentProfile.studentId || 'Not provided'}</p><p><span className="text-muted-foreground">Course:</span> {app.studentProfile.course || 'Not provided'}</p><p><span className="text-muted-foreground">School:</span> {app.studentProfile.school || 'Not provided'}</p><p><span className="text-muted-foreground">Phone:</span> {app.studentProfile.phone || 'Not provided'}</p><p><span className="text-muted-foreground">Skills:</span> {Array.isArray(app.studentProfile.skills) ? app.studentProfile.skills.join(', ') : app.studentProfile.skills || 'Not provided'}</p><p><span className="text-muted-foreground">CGPA:</span> {app.studentProfile.cgpa || 'Not provided'}</p><p className="sm:col-span-2"><span className="text-muted-foreground">Bio:</span> {app.studentProfile.bio || 'Not provided'}</p></div>}
+                        {app.studentProfile && <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+                          <div className="flex items-center gap-3 border-b border-border pb-4">
+                            {app.studentProfile.photo ? <img src={normalizeDropboxUrl(app.studentProfile.photo)} alt="Student profile" className="size-14 rounded-full border border-border object-cover" /> : <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">{(app.studentProfile.displayName || app.studentEmail || 'S').slice(0, 1).toUpperCase()}</div>}
+                            <div><p className="font-semibold">{app.studentProfile.displayName || app.studentEmail || 'Student profile'}</p><p className="text-xs text-muted-foreground">Full submitted profile</p></div>
+                          </div>
+                          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">{[
+                            ['Student ID', app.studentProfile.studentId], ['Phone', app.studentProfile.phone], ['Gender', app.studentProfile.gender],
+                            ['School', app.studentProfile.school], ['Department', app.studentProfile.department], ['Course', app.studentProfile.course],
+                            ['Level', app.studentProfile.level], ['Graduation year', app.studentProfile.gradYear], ['CGPA', app.studentProfile.cgpa],
+                            ['Location', app.studentProfile.location], ['Preferred location', app.studentProfile.preferredLocation], ['Preferred field', app.studentProfile.preferredField],
+                            ['Placement duration', app.studentProfile.duration], ['Available from', app.studentProfile.startDate],
+                            ['Skills', Array.isArray(app.studentProfile.skills) ? app.studentProfile.skills.join(', ') : app.studentProfile.skills],
+                          ].map(([label, value]) => <p key={label}><span className="text-muted-foreground">{label}:</span> {value || 'Not provided'}</p>)}
+                            <p className="sm:col-span-2"><span className="text-muted-foreground">Bio / experience:</span> {app.studentProfile.bio || 'Not provided'}</p>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">{app.studentProfile.cv && <a href={normalizeDropboxUrl(app.studentProfile.cv)} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">View CV</a>}{app.studentProfile.portfolio && <a href={app.studentProfile.portfolio} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">Portfolio</a>}{app.studentProfile.linkedin && <a href={app.studentProfile.linkedin} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">LinkedIn</a>}</div>
+                        </div>}
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           {app.studentProfile?.cv && <a href={normalizeDropboxUrl(app.studentProfile.cv)} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">View CV</a>}
                           <button onClick={() => updateApplicationStatus(app.id, 'accepted')} className="rounded-lg bg-emerald/10 px-3 py-2 text-sm font-semibold text-emerald">Approve</button>
