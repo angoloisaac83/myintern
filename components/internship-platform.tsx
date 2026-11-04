@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -24,24 +25,28 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationCenter } from "@/components/notification-center";
 import {
   ArrowRight,
-  Bell,
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
   ChevronDown,
   Clock3,
+  ChevronRight,
   Filter,
   GraduationCap,
   Heart,
   MapPin,
+  Menu,
   Search,
   ShieldCheck,
   Sparkles,
   SlidersHorizontal,
   UserRound,
   Users,
+  X,
 } from "lucide-react";
 
 type InternshipItem = {
@@ -50,6 +55,8 @@ type InternshipItem = {
   role: string;
   location: string;
   type: string;
+  status?: string;
+  approvalStatus?: "pending" | "approved" | "suspended" | "rejected";
   requirements?: string;
   tags?: string[];
   createdAt?: unknown;
@@ -184,15 +191,17 @@ export default function InternshipPlatform() {
   const [notifications, setNotifications] = useState<
     { id: string; message: string; createdAt: number; applicationId?: string }[]
   >([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isCompanyAccount, setIsCompanyAccount] = useState<boolean | null>(
     null,
   );
+  const [isAdminAccount, setIsAdminAccount] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<any | null>(null);
   const [showApplicationsPanel, setShowApplicationsPanel] = useState(false);
   const [showSavedPanel, setShowSavedPanel] = useState(false);
   const [studentProfile, setStudentProfile] = useState<any | null>(null);
   const [profileImage, setProfileImage] = useState("");
+  const [accountApprovalStatus, setAccountApprovalStatus] = useState("active");
 
   useEffect(() => {
     setShowApplicationsPanel(activeNav === "My applications");
@@ -232,6 +241,8 @@ export default function InternshipPlatform() {
       setDisplayName(user?.displayName ?? "");
       if (!user) {
         setIsCompanyAccount(null);
+        setIsAdminAccount(false);
+        setAccountApprovalStatus("active");
         setProfileImage("");
         return;
       }
@@ -239,7 +250,17 @@ export default function InternshipPlatform() {
         try {
           const db = getFirebaseDb();
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists() && (userDoc.data() as any).type === "company") {
+          const userData = userDoc.exists() ? (userDoc.data() as any) : null;
+          const userType = userData?.type ?? null;
+          setAccountApprovalStatus(userData?.accountStatus ?? "active");
+          if (userType === "admin") {
+            setIsAdminAccount(true);
+            setIsCompanyAccount(false);
+            setProfileImage("");
+            return;
+          }
+          setIsAdminAccount(false);
+          if (userType === "company") {
             const companyDoc = await getDoc(doc(db, "companies", user.uid));
             setProfileImage(
               companyDoc.exists()
@@ -263,6 +284,7 @@ export default function InternshipPlatform() {
           }
         } catch (err) {
           console.error(err);
+          setIsAdminAccount(false);
           setIsCompanyAccount(false);
         }
       })();
@@ -426,7 +448,9 @@ export default function InternshipPlatform() {
           locationTerms.some((term) => normalizedItemLocation.includes(term));
         const matchesType =
           typeFilter === "All types" || item.type === typeFilter;
-        return matchesSearch && matchesLocation && matchesType;
+        const isApprovedRole = !item.approvalStatus || item.approvalStatus === "approved";
+        const isOpenRole = item.status !== "closed";
+        return isApprovedRole && isOpenRole && matchesSearch && matchesLocation && matchesType;
       }),
     [query, internships, locationFilter, locationTerms, typeFilter],
   );
@@ -536,6 +560,10 @@ export default function InternshipPlatform() {
     if (!currentUser) {
       showActionMessage("Please sign in before applying for a placement.");
       setShowAuth(true);
+      return;
+    }
+    if (accountApprovalStatus !== "active") {
+      showActionMessage(accountApprovalStatus === "pending" ? "Your account is awaiting coordinator approval before you can apply." : "Your account is inactive. Contact a coordinator for help.");
       return;
     }
     if (!internship) {
@@ -662,6 +690,7 @@ export default function InternshipPlatform() {
           uid: result.user.uid,
           email,
           type: accountType,
+          accountStatus: "pending",
           name: profileName,
           createdAt: serverTimestamp(),
         });
@@ -670,7 +699,7 @@ export default function InternshipPlatform() {
       setCurrentUser(result.user);
       setAuthSuccess(
         authMode === "signup"
-          ? "Account created successfully. Welcome to Pathway."
+          ? "Account created. A coordinator will review your account before you apply."
           : "You are signed in successfully. Welcome back.",
       );
       setShowAuth(false);
@@ -712,21 +741,21 @@ export default function InternshipPlatform() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/70 bg-card/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 px-2 py-3 sm:gap-2 sm:px-5 lg:px-8">
           <button
             className="flex items-center gap-3"
             onClick={() => setActiveNav("Discover")}
             aria-label="Pathway home"
           >
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-[#163e31] text-lime-200 shadow-sm shadow-emerald-950/15">
               <Sparkles className="size-5" />
             </span>
             <span>
               <span className="block font-serif text-xl font-bold tracking-tight">
                 pathway
               </span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground sm:block">
                 IT placements
               </span>
             </span>
@@ -747,45 +776,14 @@ export default function InternshipPlatform() {
                 {label}
               </button>
             ))}
+            {isAdminAccount && <Link href="/admin" className="text-sm font-semibold text-primary transition hover:text-primary/80">Coordinator</Link>}
           </div>
-          <div className="relative flex items-center gap-3">
-            <div className="relative">
-              <button
-                aria-label="Notifications"
-                onClick={() => setShowNotifications((s) => !s)}
-                className="flex size-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:text-foreground"
-              >
-                <Bell className="size-4" />
-                {notifications.length > 0 && (
-                  <span className="absolute -right-1 -top-1 inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold text-white">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-              {showNotifications && (
-                <div className="absolute right-0 z-50 mt-3 w-80 rounded-2xl border border-border bg-card p-3 shadow-lg">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    Notifications
-                  </p>
-                  <div className="mt-2 max-h-64 overflow-auto">
-                    {notifications.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        No new notifications
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className="mb-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        >
-                          {n.message}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="relative flex items-center gap-1 sm:gap-3">
+            <button type="button" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="home-mobile-menu" onClick={() => setMobileMenuOpen((open) => !open)} className="flex size-10 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-sm transition hover:bg-secondary md:hidden">
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+            <ThemeToggle />
+            <NotificationCenter notifications={notifications} />
             {!currentUser && (
               <button
                 onClick={() => {
@@ -848,17 +846,28 @@ export default function InternshipPlatform() {
                   setAuthSuccess("");
                   setShowAuth(true);
                 }}
-                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
+                className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5 sm:px-4"
               >
                 Sign in
               </button>
             )}
           </div>
         </div>
+        {mobileMenuOpen && <nav id="home-mobile-menu" className="absolute left-0 right-0 top-full z-50 max-h-[calc(100svh_-_4rem)] overflow-y-auto border-b border-border bg-card p-3 shadow-xl md:hidden" aria-label="Mobile navigation">
+          <div className="mx-auto max-w-7xl space-y-1">
+            <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Your workspace</p>
+            {navItems.map(({ label, icon: Icon }) => <button key={label} type="button" onClick={() => { setActiveNav(label); setShowApplicationsPanel(label === "My applications"); setShowSavedPanel(label === "Saved"); if (label === "My applications") loadApplications(); setMobileMenuOpen(false) }} className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-semibold ${activeNav === label ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"}`}><span className="flex items-center gap-3"><Icon className="size-4" />{label}</span><ChevronRight className="size-4 text-muted-foreground" /></button>)}
+            <div className="my-2 border-t border-border" />
+            <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Pathway pages</p>
+            <Link href="/company" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Employer portal<ChevronRight className="size-4 text-muted-foreground" /></Link>
+            <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Profile settings<ChevronRight className="size-4 text-muted-foreground" /></Link>
+            {isAdminAccount && <><div className="my-2 border-t border-border" /><p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Coordinator tools</p><Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-primary hover:bg-primary/10">Coordinator dashboard<ChevronRight className="size-4" /></Link><Link href="/admin/analytics" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Analytics<ChevronRight className="size-4 text-muted-foreground" /></Link><Link href="/admin/organizations" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Organizations<ChevronRight className="size-4 text-muted-foreground" /></Link><Link href="/admin/reports" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary">Reports<ChevronRight className="size-4 text-muted-foreground" /></Link></>}
+          </div>
+        </nav>}
       </header>
 
       <nav
-        className="border-b border-border bg-card px-5 py-2 lg:hidden"
+        className="hidden"
         aria-label="Your workspace"
       >
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto">
@@ -892,9 +901,15 @@ export default function InternshipPlatform() {
           {authSuccess}
         </div>
       )}
+      {currentUser && accountApprovalStatus !== "active" && (
+        <div className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-3 text-center text-sm font-medium text-amber-800 dark:text-amber-200" role="status">
+          {accountApprovalStatus === "pending" ? "Your account is awaiting coordinator approval. You can complete your profile while it is under review." : `Your account is ${accountApprovalStatus}. You cannot apply for roles until a coordinator reactivates it.`}
+          {isAdminAccount && <Link href="/admin" className="ml-2 font-bold underline underline-offset-4">Coordinator dashboard</Link>}
+        </div>
+      )}
       {actionMessage && (
         <div
-          className={`fixed bottom-5 left-1/2 z-[70] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg ${actionMessage.tone === "success" ? "border-emerald/20 bg-emerald/10 text-emerald" : "border-rose-200 bg-rose-50 text-rose-700"}`}
+          className={`fixed bottom-5 left-1/2 z-[70] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg ${actionMessage.tone === "success" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "border-destructive/20 bg-destructive/10 text-destructive"}`}
           role="status"
         >
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
@@ -909,27 +924,31 @@ export default function InternshipPlatform() {
         </div>
       )}
 
-      <section className="overflow-hidden border-b border-border bg-[#101b2d] text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:py-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-16">
+      <section className="relative isolate overflow-hidden bg-[#10251f] text-white">
+        <div className="pointer-events-none absolute -right-32 -top-44 size-[34rem] rounded-full border border-white/[0.06]" />
+        <div className="pointer-events-none absolute -right-16 -top-28 size-[24rem] rounded-full border border-white/[0.06]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 pb-9 pt-11 sm:px-8 sm:pb-12 sm:pt-14 lg:grid-cols-[1fr_0.9fr] lg:gap-10 lg:px-10 lg:pb-14 lg:pt-16">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-card/10 px-3 py-1.5 text-xs font-semibold text-white/80"><Sparkles className="size-3.5 text-emerald-300" /> Allocation-ready opportunities</div>
-            <h1 className="max-w-3xl font-serif text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">Your next placement should feel like a <span className="text-emerald-300">match.</span></h1>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200/20 bg-emerald-200/[0.08] px-3 py-1.5 text-xs font-semibold tracking-wide text-emerald-100"><Sparkles className="size-3.5 text-lime-300" /> A smarter start to your career</div>
+            <h1 className="max-w-2xl font-serif text-4xl font-semibold leading-[1.04] tracking-tight text-balance sm:text-5xl lg:text-[3.65rem]">Find the place where your <span className="text-lime-300">potential fits.</span></h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/70">Pathway brings students, verified employers, and coordinators into one transparent workflow—from profile to a fair, trackable placement.</p>
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-white/70"><span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-300" /> Weighted matching</span><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-emerald-300" /> Verified employers</span><span className="flex items-center gap-2"><GraduationCap className="size-4 text-emerald-300" /> Coordinator oversight</span></div>
+            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2.5 text-xs font-medium text-white/70 sm:text-sm"><span className="flex items-center gap-2"><CheckCircle2 className="size-4 text-lime-300" /> Personalized matches</span><span className="flex items-center gap-2"><ShieldCheck className="size-4 text-lime-300" /> Verified organizations</span></div>
           </div>
-          <div className="rounded-[1.75rem] border border-white/10 bg-card/[0.08] p-4 shadow-2xl sm:p-5">
-            <p className="px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Start your search</p>
-            <div className="mt-3 flex flex-col gap-3">
-              <div className="flex items-center gap-3 rounded-2xl bg-card px-4 text-foreground"><Search className="size-5 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Role, skill, or company" className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" /></div>
-              <button onClick={detectLocation} disabled={isLocating} className="flex h-12 items-center justify-between rounded-2xl border border-white/15 bg-card/5 px-4 text-sm font-medium text-white/80 disabled:opacity-60"><span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-300" /> {isLocating ? "Locating..." : detectedLocation || "Use my location"}</span><ChevronDown className="size-4" /></button>
-              <button className="h-12 rounded-2xl bg-emerald-300 px-5 text-sm font-bold text-slate-950 hover:bg-emerald-200">Explore placements</button>
+          <div className="relative mx-auto w-full max-w-[490px] lg:justify-self-end">
+            <Image src="/placement-match.svg" alt="A student profile matched with an IT internship opportunity" width={520} height={360} priority className="h-auto max-h-48 w-full object-contain drop-shadow-[0_28px_50px_rgba(0,0,0,0.25)] sm:max-h-none" />
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3 shadow-2xl backdrop-blur-sm sm:p-3.5 lg:col-span-2">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+              <label className="flex min-w-0 items-center gap-3 rounded-2xl bg-white px-4 text-slate-800"><Search className="size-5 shrink-0 text-slate-400" /><input aria-label="Search placements" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search roles, skills, or companies" className="h-12 min-w-0 w-full bg-transparent text-sm outline-none placeholder:text-slate-400" /></label>
+              <button onClick={detectLocation} disabled={isLocating} className="flex h-12 items-center justify-between gap-5 rounded-2xl border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/85 disabled:opacity-60"><span className="flex items-center gap-2"><MapPin className="size-4 text-lime-300" /> {isLocating ? "Locating..." : detectedLocation || "Any location"}</span><ChevronDown className="size-4 text-white/50" /></button>
+              <button onClick={() => document.getElementById("placements")?.scrollIntoView({ behavior: "smooth" })} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-lime-300 px-5 text-sm font-bold text-[#10251f] transition hover:bg-lime-200">Explore placements <ArrowRight className="size-4" /></button>
             </div>
-            <p className="mt-4 px-2 text-xs leading-5 text-white/45">Search results are ranked against your live profile, preferences, and role requirements.</p>
+            <p className="px-2 pb-1 pt-3 text-xs leading-5 text-white/50">Search across open placements and find roles that fit your next step.</p>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 lg:grid-cols-[230px_1fr] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-9 lg:grid-cols-[220px_1fr] lg:gap-10 lg:px-8 lg:py-12">
         <aside className="hidden lg:block">
           <p className="mb-4 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Your workspace
@@ -949,7 +968,7 @@ export default function InternshipPlatform() {
               </button>
             ))}
           </nav>
-          <div className="mt-10 rounded-2xl bg-primary p-5 text-primary-foreground">
+          <div className="mt-10 overflow-hidden rounded-3xl bg-[#163e31] p-5 text-white shadow-lg shadow-emerald-950/10">
             <ShieldCheck className="mb-8 size-6" />
             <p className="font-serif text-lg font-bold">
               Every opportunity, verified.
@@ -960,13 +979,13 @@ export default function InternshipPlatform() {
           </div>
         </aside>
 
-        <section>
+        <section id="placements" className="scroll-mt-8">
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="text-sm font-medium text-primary">
+              <p className="text-sm font-semibold text-primary">
                 {currentUser ? `Welcome back, ${currentUser.displayName || "student"}` : "A clearer path to placement"}
               </p>
-              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight">
+              <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-[2.1rem]">
                 Recommended placements
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -995,7 +1014,7 @@ export default function InternshipPlatform() {
               <button onClick={() => setShowAuth(true)} className="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Get started</button>
             </div>
           )}
-          <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
             <Stat
               icon={Sparkles}
               label="Profile match"
@@ -1005,8 +1024,8 @@ export default function InternshipPlatform() {
             <Stat
               icon={BriefcaseBusiness}
               label="Open placements"
-              value={`${internships.length}`}
-              detail="Updated from database"
+              value={`${internships.filter((item) => (!item.approvalStatus || item.approvalStatus === "approved") && item.status !== "closed").length}`}
+              detail="Approved and accepting applications"
             />
             <Stat
               icon={CheckCircle2}
@@ -1026,7 +1045,7 @@ export default function InternshipPlatform() {
               filtered.map((item) => (
                 <article
                   key={item.id}
-                  className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                  className="group rounded-3xl border border-border/80 bg-card p-5 shadow-[0_4px_20px_rgba(26,50,38,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_36px_rgba(26,50,38,0.09)] sm:p-6"
                 >
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                     <div
@@ -1634,15 +1653,15 @@ function Stat({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm sm:rounded-2xl sm:p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
           {label}
         </span>
         <Icon className="size-4 text-primary" />
       </div>
-      <p className="mt-3 font-serif text-2xl font-bold">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+      <p className="mt-2 font-serif text-xl font-bold sm:mt-3 sm:text-2xl">{value}</p>
+      <p className="mt-1 text-[10px] leading-4 text-muted-foreground sm:text-xs">{detail}</p>
     </div>
   );
 }

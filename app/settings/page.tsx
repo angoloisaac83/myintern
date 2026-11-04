@@ -239,14 +239,18 @@ export default function SettingsPage() {
   const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100)
 
   return (
-    <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-8 sm:py-8">
+    <main className="settings-page min-h-screen bg-background text-foreground">
+      <header className="relative isolate overflow-hidden bg-[#10251f] px-5 py-8 text-white sm:px-8 sm:py-11">
+        <div className="pointer-events-none absolute -right-20 -top-40 size-[28rem] rounded-full border border-white/[0.06]" />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div><Link href="/" className="text-sm font-semibold text-lime-200">← Back to Pathway</Link><p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-lime-200">Your workspace</p><h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">Profile settings</h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/70">Keep your details current to get better placement matches and help employers understand what you bring.</p></div>
+          <div className="min-w-48 rounded-2xl border border-white/10 bg-white/[0.07] px-5 py-4 backdrop-blur-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">{accountType === 'company' ? 'Organization status' : 'Profile completeness'}</p><p className="mt-1 text-2xl font-bold text-lime-200">{accountType === 'company' ? (verificationStatus === 'Verified' ? 'Verified' : 'In review') : `${profileCompletion}%`}</p>{accountType !== 'company' && <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-lime-300 transition-all" style={{ width: `${profileCompletion}%` }} /></div>}</div>
+        </div>
+      </header>
+      <div className="px-4 py-7 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><Link href="/" className="text-sm font-semibold text-primary">← Pathway</Link><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Profile settings</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Keep your profile current so the allocation engine can make fair, explainable recommendations.</p></div>
-          <div className="rounded-2xl border border-border bg-card px-4 py-3 text-left shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Profile strength</p><p className="mt-1 text-2xl font-bold text-primary">{accountType === 'company' ? (verificationStatus === 'Verified' ? 'Verified' : 'In review') : `${profileCompletion}%`}</p></div>
-        </header>
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="h-fit rounded-[1.75rem] border border-border bg-card p-5 shadow-sm lg:sticky lg:top-6">
+        <div className="grid gap-6 lg:grid-cols-[290px_1fr] lg:gap-8">
+        <aside className="h-fit rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] lg:sticky lg:top-24">
           <div className="flex items-center gap-4">
             {accountType === 'company' && companyLogoData ? <img src={companyLogoData} alt="Company logo" className="h-16 w-16 rounded-full object-cover" /> : photoData ? <img src={photoData} alt="Profile" className="h-16 w-16 rounded-full object-cover" /> : <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">{(displayName || (currentUser && currentUser.email) || 'U').slice(0, 1).toUpperCase()}</div>}
             <div>
@@ -256,21 +260,21 @@ export default function SettingsPage() {
           </div>
           <div className="mt-6">
             <p className="text-xs font-semibold text-muted-foreground">About</p>
-            <p className="mt-2 text-sm text-muted-foreground">{course ? `${course} • ${location || 'No location set'}` : 'Add your course and preferred location to improve matching.'}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{accountType === 'company' ? `${industry || 'Industry not set'} • ${companyState || 'Location not set'}` : course ? `${course} • ${preferredLocation || location || 'No location set'}` : 'Add your course and preferred location to improve matching.'}</p>
           </div>
-          <div className="mt-6">
+          {accountType !== 'company' && <div className="mt-6">
             <p className="text-xs font-semibold text-muted-foreground">Skills</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(skills ? skills.split(',').map((s) => s.trim()).filter(Boolean) : []).map((s) => <span key={s} className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{s}</span>)}
               {(!skills || skills.trim() === '') && <p className="text-sm text-muted-foreground">No skills added yet.</p>}
             </div>
-          </div>
+          </div>}
         </aside>
-        <section className="rounded-[1.75rem] border border-border bg-card p-5 shadow-sm sm:p-8">
+        <section className="rounded-3xl border border-border/80 bg-card p-5 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-8">
           <div className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Account details</p><h2 className="mt-2 text-2xl font-bold">Edit your {accountType === 'company' ? 'company' : 'student'} profile</h2>
           <p className="mt-2 text-sm text-muted-foreground">Edit your profile to help the platform match you correctly.</p></div>
           {accountType === 'company' ? (
-            <form onSubmit={save} className="mt-6 space-y-4">
+            <form onSubmit={save} className="settings-form mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
               <label className="block text-sm font-medium">Company name<input required value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Company registration number<input value={companyReg} onChange={(e) => setCompanyReg(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Phone number<input value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
@@ -278,11 +282,11 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium">State<input value={companyState} onChange={(e) => setCompanyState(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Website<input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Industry<input value={industry} onChange={(e) => setIndustry(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
-              <label className="block text-sm font-medium">Company description<textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none" /></label>
+              <label className="block text-sm font-medium md:col-span-2">Company description<textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none" /></label>
               <label className="block text-sm font-medium">Contact person<input value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Contact position<input value={contactPosition} onChange={(e) => setContactPosition(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Number of employees<input value={numberEmployees} onChange={(e) => setNumberEmployees(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
-              <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5">
+              <div className="md:col-span-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   {companyLogoData ? <img src={companyLogoData} alt="Company logo preview" className="h-20 w-20 rounded-2xl border border-border bg-card object-cover" /> : <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-card text-xs font-semibold text-muted-foreground">No logo</div>}
                   <div className="min-w-0 flex-1">
@@ -295,15 +299,15 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              <label className="block text-sm font-medium">Verification documents (PDF/image)<input type="file" accept="application/pdf,image/*" onChange={async (e) => { const f = e.target.files?.[0] ?? null; const b = await fileToBase64(f); setVerificationDocsData(b) }} className="mt-2" /></label>
-              <div className="flex items-center gap-3">
+              <label className="block text-sm font-medium md:col-span-2">Verification documents (PDF/image)<input type="file" accept="application/pdf,image/*" onChange={async (e) => { const f = e.target.files?.[0] ?? null; const b = await fileToBase64(f); setVerificationDocsData(b) }} className="mt-2" /></label>
+              <div className="flex items-center gap-3 md:col-span-2">
                 <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Save company profile</button>
                 <Link href="/" className="text-sm text-muted-foreground">Cancel</Link>
               </div>
-              {message && <p className="text-sm text-muted-foreground">{message}</p>}
+              {message && <p className="text-sm text-muted-foreground md:col-span-2" role="status">{message}</p>}
             </form>
           ) : (
-            <form onSubmit={save} className="mt-6 space-y-4">
+            <form onSubmit={save} className="settings-form mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
               <label className="block text-sm font-medium">Full name<input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Student ID / Matric No.<input value={studentId} onChange={(e) => setStudentId(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Email (read-only)<input value={currentUser.email ?? ''} readOnly className="mt-2 h-11 w-full rounded-xl border border-input bg-muted-foreground px-3 outline-none" /></label>
@@ -316,7 +320,7 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium">Expected graduation year<input value={gradYear} onChange={(e) => setGradYear(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">CGPA<input value={cgpa} onChange={(e) => setCgpa(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Skills (comma separated)<input value={skills} onChange={(e) => setSkills(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
-              <label className="block text-sm font-medium">Experience<textarea value={bio} onChange={(e) => setBio(e.target.value)} className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none" placeholder="Briefly mention projects or work experience" /></label>
+              <label className="block text-sm font-medium md:col-span-2">Experience<textarea value={bio} onChange={(e) => setBio(e.target.value)} className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 outline-none" placeholder="Briefly mention projects or work experience" /></label>
               <label className="block text-sm font-medium">Preferred internship field<input value={preferredField} onChange={(e) => setPreferredField(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Preferred location<input value={preferredLocation} onChange={(e) => setPreferredLocation(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Internship duration<input value={duration} onChange={(e) => setDuration(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
@@ -325,15 +329,16 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium">Portfolio / GitHub Link<input value={portfolio} onChange={(e) => setPortfolio(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">LinkedIn Link<input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none" /></label>
               <label className="block text-sm font-medium">Profile photo (image)<input type="file" accept="image/*" onChange={async (e) => { const f = e.target.files?.[0] ?? null; const b = await fileToBase64(f); setPhotoData(b) }} className="mt-2" /></label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 md:col-span-2">
                 <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Save profile</button>
                 <Link href="/" className="text-sm text-muted-foreground">Cancel</Link>
               </div>
-              {message && <p className="text-sm text-muted-foreground">{message}</p>}
+              {message && <p className="text-sm text-muted-foreground md:col-span-2" role="status">{message}</p>}
             </form>
           )}
         </section>
         </div>
+      </div>
       </div>
     </main>
   )

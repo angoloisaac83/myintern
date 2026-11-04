@@ -1,0 +1,41 @@
+<svg width="520" height="360" viewBox="0 0 520 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">A better internship match</title>
+  <desc id="desc">An illustrated student profile connects to a recommended technology placement.</desc>
+  <defs>
+    <linearGradient id="panel" x1="93" y1="27" x2="423" y2="328" gradientUnits="userSpaceOnUse"><stop stop-color="#F8F7EF"/><stop offset="1" stop-color="#E5EFE2"/></linearGradient>
+    <linearGradient id="green" x1="134" y1="132" x2="201" y2="206" gradientUnits="userSpaceOnUse"><stop stop-color="#D9F99D"/><stop offset="1" stop-color="#9CDB80"/></linearGradient>
+    <filter id="shadow" x="32" y="10" width="456" height="356" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <ellipse cx="258" cy="319" rx="167" ry="17" fill="#071610" fill-opacity=".2" filter="url(#shadow)"/>
+  <circle cx="421" cy="73" r="37" fill="#C9F27A" fill-opacity=".13"/>
+  <circle cx="88" cy="253" r="23" fill="#C9F27A" fill-opacity=".12"/>
+  <path d="M93 55C93 43.954 101.954 35 113 35H409C420.046 35 429 43.954 429 55V288C429 299.046 420.046 308 409 308H113C101.954 308 93 299.046 93 288V55Z" fill="url(#panel)"/>
+  <path d="M93.5 55C93.5 44.230 102.23 35.5 113 35.5H409C419.77 35.5 428.5 44.23 428.5 55V288C428.5 298.77 419.77 307.5 409 307.5H113C102.23 307.5 93.5 298.77 93.5 288V55Z" stroke="white" stroke-opacity=".55"/>
+  <circle cx="118" cy="60" r="4" fill="#D8DED5"/><circle cx="132" cy="60" r="4" fill="#D8DED5"/><circle cx="146" cy="60" r="4" fill="#D8DED5"/>
+  <rect x="113" y="83" width="180" height="201" rx="16" fill="white"/>
+  <rect x="127" y="97" width="34" height="34" rx="12" fill="#E8F2E6"/>
+  <path d="M139 119C139 115.686 141.686 113 145 113C148.314 113 151 115.686 151 119M142 107C142 105.343 143.343 104 145 104C146.657 104 148 105.343 148 107C148 108.657 146.657 110 145 110C143.343 110 142 108.657 142 107Z" stroke="#3A7057" stroke-width="1.8" stroke-linecap="round"/>
+  <rect x="170" y="100" width="75" height="6" rx="3" fill="#293D33"/><rect x="170" y="112" width="52" height="5" rx="2.5" fill="#CCD5CB"/>
+  <circle cx="150" cy="164" r="21" fill="#F2C6A4"/>
+  <path d="M130 160C130 147.85 138.954 140 150.556 140C162.158 140 170 149.327 170 160.889C164.083 156.296 157.75 154.037 150 154.037C142.481 154.037 135.75 156.444 130 160Z" fill="#263A32"/>
+  <path d="M126 203C128.7 186.535 137.483 178 150 178C162.517 178 171.3 186.535 174 203H126Z" fill="#75A27D"/>
+  <rect x="184" y="143" width="87" height="7" rx="3.5" fill="#34493D"/><rect x="184" y="157" width="72" height="5" rx="2.5" fill="#D5DDD3"/><rect x="184" y="168" width="59" height="5" rx="2.5" fill="#D5DDD3"/>
+  <rect x="127" y="220" width="51" height="18" rx="9" fill="#E8F2E6"/><rect x="183" y="220" width="57" height="18" rx="9" fill="#E8F2E6"/><rect x="127" y="245" width="66" height="18" rx="9" fill="#E8F2E6"/>
+  <circle cx="337" cy="183" r="42" fill="#D9E9D3" fill-opacity=".6"/>
+  <path d="M284 183H319M355 183H379" stroke="#6C9D71" stroke-width="2" stroke-dasharray="4 5"/>
+  <circle cx="337" cy="183" r="25" fill="url(#green)"/>
+  <path d="M329 183.5L334.5 189L345.5 177" stroke="#234331" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="379" y="111" width="89" height="145" rx="16" fill="white"/>
+  <rect x="392" y="124" width="35" height="35" rx="11" fill="#133D31"/>
+  <path d="M404 149V141M411 149V134M418 149V138" stroke="#C9F27A" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="392" y="170" width="62" height="6" rx="3" fill="#293D33"/><rect x="392" y="183" width="47" height="5" rx="2.5" fill="#CCD5CB"/>
+  <rect x="392" y="199" width="58" height="24" rx="12" fill="#EAF5D7"/>
+  <path d="M402 211L406 215L413 207" stroke="#46734C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="418" y="208" width="24" height="5" rx="2.5" fill="#46734C"/>
+  <rect x="392" y="234" width="49" height="5" rx="2.5" fill="#D5DDD3"/>
+  <rect x="69" y="211" width="101" height="50" rx="15" fill="#C9F27A"/>
+  <path d="M84 229L89 234L98 224" stroke="#24452E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="104" y="225" width="48" height="5" rx="2.5" fill="#24452E"/><rect x="104" y="236" width="34" height="4" rx="2" fill="#59704B"/>
+  <rect x="344" y="64" width="104" height="38" rx="13" fill="white"/>
+  <circle cx="361" cy="83" r="5" fill="#69A875"/><rect x="373" y="79" width="61" height="7" rx="3.5" fill="#526258"/>
+</svg>

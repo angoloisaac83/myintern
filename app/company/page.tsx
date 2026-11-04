@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { addDoc, collection, doc, getDocs, getDoc, query, serverTimestamp, setDoc, where, updateDoc, onSnapshot, orderBy } from 'firebase/firestore'
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile, type User } from 'firebase/auth'
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase'
-import { ArrowRight, Briefcase, Building2, CheckCircle2, MapPin, Sparkles, Users, Bell } from 'lucide-react'
+import { ArrowRight, Briefcase, Building2, CheckCircle2, MapPin, Sparkles, Users } from 'lucide-react'
+import { NotificationCenter } from '@/components/notification-center'
 
 type InternshipItem = {
   id: string
@@ -16,6 +17,7 @@ type InternshipItem = {
   requirements?: string
   tags?: string[]
   status?: string
+  approvalStatus?: 'pending' | 'approved' | 'suspended' | 'rejected'
   createdAt?: unknown
   createdBy?: string
 }
@@ -55,8 +57,8 @@ export default function CompanyPage() {
   const [applications, setApplications] = useState<any[]>([])
   const [appsLoading, setAppsLoading] = useState(false)
   const [isCompanyAccount, setIsCompanyAccount] = useState<boolean | null>(null)
+  const [companyAccountStatus, setCompanyAccountStatus] = useState<'pending' | 'active' | 'suspended' | 'deactivated'>('active')
   const [companyNotifications, setCompanyNotifications] = useState<any[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     const auth = getFirebaseAuth()
@@ -66,6 +68,7 @@ export default function CompanyPage() {
         setCompanyName('')
         setCompanyLogo('')
         setIsCompanyAccount(null)
+        setCompanyAccountStatus('active')
         setJobs([])
         return
       }
@@ -74,10 +77,13 @@ export default function CompanyPage() {
         try {
           const db = getFirebaseDb()
           const userDoc = await getDoc(doc(db, 'users', user.uid))
-          if (userDoc.exists() && (userDoc.data() as any).type === 'company') {
+          const userData = userDoc.exists() ? userDoc.data() as any : null
+          setCompanyAccountStatus(userData?.accountStatus ?? 'active')
+          if (userData?.type === 'company') {
             const companyDoc = await getDoc(doc(db, 'companies', user.uid))
             if (companyDoc.exists()) {
               const companyData = companyDoc.data() as any
+              setCompanyAccountStatus(userData.accountStatus ?? companyData.accountStatus ?? 'active')
               setCompanyName(companyData.name ?? user.displayName ?? '')
               setCompanyLogo(normalizeDropboxUrl(companyData.logo))
               setCompanyWebsite(companyData.website ?? '')
@@ -88,6 +94,7 @@ export default function CompanyPage() {
           const compDoc = await getDoc(doc(db, 'companies', user.uid))
           if (compDoc.exists()) {
             const companyData = compDoc.data() as any
+            setCompanyAccountStatus(userData?.accountStatus ?? companyData.accountStatus ?? 'active')
             setCompanyName(companyData.name ?? user.displayName ?? '')
             setCompanyLogo(normalizeDropboxUrl(companyData.logo))
             setCompanyWebsite(companyData.website ?? '')
@@ -95,9 +102,11 @@ export default function CompanyPage() {
             return
           }
           setIsCompanyAccount(false)
+          setCompanyAccountStatus('active')
         } catch (err) {
           console.error(err)
           setIsCompanyAccount(false)
+          setCompanyAccountStatus('active')
         }
       })()
     })
@@ -222,21 +231,26 @@ export default function CompanyPage() {
           website: companyWebsite,
           email,
           uid: result.user.uid,
+          verificationStatus: 'Pending',
+          accountStatus: 'pending',
           createdAt: serverTimestamp(),
         })
         await setDoc(doc(db, 'users', result.user.uid), {
           uid: result.user.uid,
           email,
           type: 'company',
+          accountStatus: 'pending',
           name: companyName,
           createdAt: serverTimestamp(),
         })
         setCurrentUser(result.user)
-        setSuccessMessage('Company account created. You can now post internship roles.')
+        setIsCompanyAccount(true)
+        setCompanyAccountStatus('pending')
+        setSuccessMessage('Company account created. A coordinator must approve your organization before you can publish roles.')
       } else {
         const result = await signInWithEmailAndPassword(auth, email, password)
         setCurrentUser(result.user)
-        setSuccessMessage('Signed in successfully. Ready to upload roles.')
+        setSuccessMessage('Signed in successfully. Checking your organization approval status.')
       }
     } catch (error) {
       const code = error instanceof Error && 'code' in error ? String((error as { code?: string }).code) : ''
@@ -259,6 +273,10 @@ export default function CompanyPage() {
       setUserMessage('Sign in first to post internship roles.')
       return
     }
+    if (companyAccountStatus !== 'active') {
+      setUserMessage('Your organization is awaiting coordinator approval before you can publish roles.')
+      return
+    }
 
     if (!role.trim() || !location.trim()) {
       setUserMessage('Role title and location are required.')
@@ -278,6 +296,11 @@ export default function CompanyPage() {
         setIsLoading(false)
         return
       }
+      if ((compData.accountStatus && compData.accountStatus !== 'active') || (compData.verificationStatus && compData.verificationStatus !== 'Verified')) {
+        setUserMessage('Your organization must be approved before you can publish roles.')
+        setIsLoading(false)
+        return
+      }
       await addDoc(collection(db, 'internships'), {
         company: currentUser.displayName || companyName || 'Company',
         role: role.trim(),
@@ -285,10 +308,12 @@ export default function CompanyPage() {
         type: type || 'Hybrid',
         requirements: requirements.trim(),
         tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        status: 'open',
+        approvalStatus: 'pending',
         createdBy: currentUser.uid,
         createdAt: serverTimestamp(),
       })
-      setSuccessMessage('Internship role uploaded successfully.')
+      setSuccessMessage('Role submitted. It will appear to students after coordinator approval.')
       setRole('')
       setLocation('')
       setType('Hybrid')
@@ -304,37 +329,29 @@ export default function CompanyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-5xl px-5 py-10 lg:px-8">
-        <div className="mb-8 flex flex-col gap-3 rounded-3xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <main className="company-portal min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-10">
+        <div className="relative isolate mb-8 flex flex-col gap-5 overflow-visible rounded-[2rem] bg-[#10251f] p-6 text-white shadow-xl shadow-emerald-950/10 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"><div className="absolute -right-20 -top-36 size-80 rounded-full border border-white/[0.07]" /></div>
           <div>
-            <p className="text-sm font-semibold text-primary">Company portal</p>
-            <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight">Post internships for students.</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Sign in, create your profile, and add open roles with location, requirements, and tags.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-200">Pathway for employers</p>
+            <h1 className="mt-3 max-w-2xl font-serif text-3xl font-semibold tracking-tight sm:text-4xl">Meet your next great intern.</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">Share meaningful opportunities with emerging IT talent. Post roles, review applications, and manage your openings in one place.</p>
           </div>
-          <div className="relative inline-flex items-center gap-3">
-            <button aria-label="Notifications" onClick={() => setShowNotifications((s) => !s)} className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground hover:bg-secondary">
-              <Bell className="size-4" />
-              {companyNotifications.length > 0 && <span className="ml-1 inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold text-white">{companyNotifications.length}</span>}
-            </button>
-            {showNotifications && <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-border bg-card p-3 shadow-lg">
-              <p className="text-xs font-semibold text-muted-foreground">Notifications</p>
-              <div className="mt-2 max-h-64 overflow-auto">
-                {companyNotifications.length === 0 ? <div className="text-sm text-muted-foreground">No new notifications</div> : companyNotifications.map((n) => <div key={n.id} className="mb-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">{n.message}</div>)}
-              </div>
-            </div>}
-            <Link href="/" className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-secondary">
-              <Sparkles className="size-4" /> Back to student portal
+          <div className="relative z-10 inline-flex shrink-0 items-center gap-3">
+            <NotificationCenter notifications={companyNotifications} />
+            <Link href="/" className="inline-flex items-center gap-2 rounded-2xl bg-lime-300 px-4 py-2.5 text-sm font-semibold text-[#10251f] transition hover:bg-lime-200">
+              <Sparkles className="size-4" /> Student portal
             </Link>
           </div>
         </div>
 
-        {successMessage && <div className="mb-6 rounded-2xl border border-emerald/20 bg-emerald/10 px-5 py-4 text-sm font-semibold text-emerald">{successMessage}</div>}
-        {userMessage && <div className="mb-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 px-5 py-4 text-sm font-semibold text-rose-700">{userMessage}</div>}
+        {successMessage && <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">{successMessage}</div>}
+        {userMessage && <div className="mb-6 rounded-2xl border border-destructive/20 bg-destructive/5 px-5 py-4 text-sm font-semibold text-destructive">{userMessage}</div>}
 
         {!currentUser ? (
           <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-8">
               <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-primary">{authMode === 'signup' ? 'Create company account' : 'Company sign in'}</p>
@@ -358,15 +375,19 @@ export default function CompanyPage() {
                 </button>
               </form>
             </div>
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <p className="text-sm font-semibold text-primary">Why companies love it</p>
-              <div className="mt-6 space-y-4 text-sm text-muted-foreground">
-                <p><strong className="text-foreground">Quick posting:</strong> Upload roles in minutes and reach motivated students.</p>
-                <p><strong className="text-foreground">Structured listings:</strong> Add requirements, location, and role type so applicants know what fits.</p>
-                <p><strong className="text-foreground">Manage your openings:</strong> Track all your posted internships in one dashboard.</p>
+            <div className="relative isolate overflow-hidden rounded-3xl border border-border/80 bg-card p-7 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-8">
+              <div className="absolute -right-12 -top-12 size-40 rounded-full bg-primary/[0.06]" />
+              <p className="relative text-xs font-semibold uppercase tracking-[0.18em] text-primary">Built for better placements</p>
+              <h2 className="relative mt-3 font-serif text-2xl font-semibold">A simpler way to connect with rising talent.</h2>
+              <div className="relative mt-7 space-y-5 text-sm text-muted-foreground">
+                <p className="flex gap-3"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" /><span><strong className="text-foreground">Post with clarity.</strong> Share the role, skills, and work arrangement students need to know.</span></p>
+                <p className="flex gap-3"><Users className="mt-0.5 size-4 shrink-0 text-primary" /><span><strong className="text-foreground">Reach motivated students.</strong> Put your opportunity in front of learners ready to grow.</span></p>
+                <p className="flex gap-3"><Briefcase className="mt-0.5 size-4 shrink-0 text-primary" /><span><strong className="text-foreground">Manage in one place.</strong> Keep track of openings and applications in your employer workspace.</span></p>
               </div>
             </div>
           </div>
+        ) : isCompanyAccount === null ? (
+          <div className="rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">Checking organization access…</div>
         ) : isCompanyAccount === false ? (
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-semibold text-primary">Access denied</p>
@@ -377,9 +398,16 @@ export default function CompanyPage() {
               <button onClick={async () => { await signOut(getFirebaseAuth()); setCurrentUser(null); setIsCompanyAccount(null); setSuccessMessage('Signed out.') }} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Sign out</button>
             </div>
           </div>
+        ) : companyAccountStatus !== 'active' ? (
+          <section className="rounded-3xl border border-amber-500/20 bg-card p-7 shadow-sm sm:p-9">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Organization access</p>
+            <h2 className="mt-3 font-serif text-2xl font-semibold">{companyAccountStatus === 'pending' ? 'Awaiting coordinator approval' : `Account ${companyAccountStatus}`}</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{companyAccountStatus === 'pending' ? 'Your organization profile is in review. You can publish internship roles once a coordinator approves it.' : 'Role posting and application management are paused. Contact your placement coordinator for assistance.'}</p>
+            <div className="mt-6 flex flex-wrap gap-3"><Link href="/settings" className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold hover:bg-secondary">Review organization profile</Link><button onClick={async () => { await signOut(getFirebaseAuth()); setCurrentUser(null) }} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">Sign out</button></div>
+          </section>
         ) : (
-          <div className="space-y-8">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   {companyLogo ? <img src={companyLogo} alt="Company logo" className="h-14 w-14 rounded-2xl object-cover" /> : <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-xl font-bold text-primary">{(currentUser.displayName || companyName || 'C').slice(0, 1).toUpperCase()}</div>}
@@ -393,8 +421,14 @@ export default function CompanyPage() {
               </div>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <div className="grid gap-6 sm:grid-cols-3">
+              <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Available roles</p><p className="mt-2 font-serif text-3xl font-semibold">{jobs.filter((job) => job.status !== 'closed' && (!job.approvalStatus || job.approvalStatus === 'approved')).length}</p><p className="mt-1 text-xs text-muted-foreground">Approved and accepting applications</p></div>
+              <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</p><p className="mt-2 font-serif text-3xl font-semibold">{applications.length}</p><p className="mt-1 text-xs text-muted-foreground">Student interest in your roles</p></div>
+              <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Organization</p><p className="mt-2 truncate text-lg font-semibold">{companyWebsite || 'Complete your profile'}</p><p className="mt-1 text-xs text-muted-foreground">Your public employer profile</p></div>
+            </div>
+
+            <div className="grid items-start gap-6 lg:grid-cols-[1fr_0.95fr]">
+              <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-8">
                 <p className="text-sm font-semibold text-primary">Post a new internship role</p>
                 <form onSubmit={submitRole} className="mt-6 space-y-4">
                   <label className="block text-sm font-medium">Role title<input required value={role} onChange={(event) => setRole(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none ring-primary focus:ring-2" placeholder="Frontend Engineering Intern" /></label>
@@ -408,25 +442,26 @@ export default function CompanyPage() {
                 </form>
               </div>
 
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-                <p className="text-sm font-semibold text-primary">Your active internship listings</p>
+              <div className="space-y-6">
+              <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-7">
+                <p className="text-sm font-semibold text-primary">Your uploaded roles</p>
                 {jobsLoading ? (
                   <div className="mt-6 text-sm text-muted-foreground">Loading your posted roles…</div>
                 ) : jobError ? (
-                  <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm text-rose-700">{jobError}</div>
+                  <div className="mt-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{jobError}</div>
                 ) : jobs.length === 0 ? (
                   <div className="mt-6 rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No roles yet. Create your first internship posting above.</div>
                 ) : (
                   <ul className="mt-6 space-y-4">
                     {jobs.map((job) => (
                       <li key={job.id} className="rounded-3xl border border-border bg-background p-4">
-                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{job.role}</p><p className="mt-1 text-sm text-muted-foreground">{job.location} • {job.type}</p></div>{job.status !== 'closed' && <button type="button" onClick={async () => { await updateDoc(doc(getFirebaseDb(), 'internships', job.id), { status: 'closed', closedAt: serverTimestamp() }); setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'closed' } : item)) }} className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-600">Close</button>}</div>
+                        <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">{job.role}</p><p className="mt-1 text-sm text-muted-foreground">{job.location} • {job.type}</p></div><div className="flex flex-col items-end gap-2"><span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${job.approvalStatus === 'pending' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : job.approvalStatus === 'suspended' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}`}>{job.approvalStatus === 'pending' ? 'Pending review' : job.approvalStatus === 'suspended' ? 'Suspended' : job.status === 'closed' ? 'Closed' : 'Approved'}</span>{job.status !== 'closed' && <button type="button" onClick={async () => { await updateDoc(doc(getFirebaseDb(), 'internships', job.id), { status: 'closed', closedAt: serverTimestamp() }); setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'closed' } : item)) }} className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-600">Close role</button>}</div></div>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm mt-6">
+              <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-[0_8px_30px_rgba(26,50,38,0.05)] sm:p-7">
                 <p className="text-sm font-semibold text-primary">Pending applications</p>
                 {appsLoading ? (
                   <div className="mt-6 text-sm text-muted-foreground">Loading pending applications…</div>
@@ -444,12 +479,13 @@ export default function CompanyPage() {
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           {app.studentProfile?.cv && <a href={normalizeDropboxUrl(app.studentProfile.cv)} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-primary">View CV</a>}
                           <button onClick={() => updateApplicationStatus(app.id, 'accepted')} className="rounded-lg bg-emerald/10 px-3 py-2 text-sm font-semibold text-emerald">Approve</button>
-                          <button onClick={() => updateApplicationStatus(app.id, 'declined')} className="rounded-lg bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700">Decline</button>
+                          <button onClick={() => updateApplicationStatus(app.id, 'declined')} className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive hover:bg-destructive/20">Decline</button>
                         </div>
                       </li>
                     ))}
                   </ul>
                 )}
+              </div>
               </div>
             </div>
           </div>
